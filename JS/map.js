@@ -129,6 +129,8 @@ function getWeatherCondition(dateAndTime, lat, lng) {
         
         infoWindow.setContent('<div><h6>Date And Time:' + dateAndTime + '</h6>'
         +
+        '<h5>Weahter Conditions--</h5>'
+        +
         '<h6>Humidity: ' + weatherCondition['humidity'] + '</h6>'
         +
             '<h6>Clouds: ' + weatherCondition['clouds'] + '</h6>'
