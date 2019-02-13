@@ -2,6 +2,8 @@ var initialLocation;
 var map, infoWindow, marker;
 var dateAndTime;
 var pos = {};
+var weatherCondition={}
+
 
 function initMap() {
     infoWindow = new google.maps.InfoWindow;
@@ -51,14 +53,13 @@ function handleLocationError(browserHasGeolocation, infoWindow, pos) {
 
 function getCurrentLocation(position) {
     initialLocation = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-    console.log(initialLocation)
     map.setCenter(initialLocation);
     map.setZoom(4);
     infoWindow.setPosition(initialLocation);
     let d = new Date(position.timestamp)
     d = d.toLocaleString()
-    infoWindow.setContent('<div><h6>Date And Time:' + d + '</h6></div>');
-
+    // infoWindow.setContent('<div><h6>Date And Time:' + d + '</h6></div>');
+    getDateAndTime(position.coords.latitude, position.coords.longitude);
     marker = new google.maps.Marker({
         position: {
             lat: position.coords.latitude,
@@ -78,15 +79,16 @@ function getDateAndTime(lat, lng) {
     var timestamp = targetDate.getTime() / 1000 + targetDate.getTimezoneOffset() * 60
     var apikey = 'AIzaSyCW5tYUfHKZ_r4R8aeuBrirWmx2XL-Cm5Q'
     var apicall = 'https://maps.googleapis.com/maps/api/timezone/json?location=' + loc + '&timestamp=' + timestamp + '&key=' + apikey
-    console.log("apicall", apicall);
 
     var xhr = new XMLHttpRequest()
     xhr.open('GET', apicall)
     xhr.onload = function () {
         if (xhr.status === 200) {
             var output = JSON.parse(xhr.responseText)
-            console.log(output.status)
-            if (output.status == 'OK') {
+            if(output.status =='ZERO_RESULTS'){
+                infoWindow.setContent('<div><h6> No Record</h6></div>');
+            }
+            else if (output.status == 'OK') {
                 var offsets = output.dstOffset * 1000 + output.rawOffset * 1000
                 var localdate = new Date(timestamp * 1000 + offsets)
                 dateAndTime = localdate.toLocaleString()
@@ -108,16 +110,39 @@ function getWeatherCondition(dateAndTime, lat, lng) {
     xhr.onload = function () {
         if (xhr.status === 200) {
             var output = JSON.parse(xhr.responseText)
-            console.log(output.status)
-            if (output.status == 'OK') {
-                console.log(output)
+           
+            if (output.base== "stations") {
+                weatherCondition['clouds'] = output.weather[0].description,
+                weatherCondition['wind speed'] = output.wind.speed
+                weatherCondition['humidity'] = output.main.humidity
+                weatherCondition['tempMax'] = (parseInt(output.main.temp_max) - 273.15).toFixed(2);
+                weatherCondition['tempMin'] = (parseInt(output.main.temp_min) - 273.15).toFixed(2);
+
             }
         } else {
             alert('Request failed.  Returned status of ' + xhr.status)
         }
     }
+
     xhr.send()
-    infoWindow.setContent('<div><h6>Date And Time:' + dateAndTime + '</h6></div>');
+    setTimeout(() => {
+        
+        infoWindow.setContent('<div><h6>Date And Time:' + dateAndTime + '</h6>'
+        +
+        '<h6>Humidity: ' + weatherCondition['humidity'] + '</h6>'
+        +
+            '<h6>Clouds: ' + weatherCondition['clouds'] + '</h6>'
+            +
+            '<h6>Wind Speed: ' + weatherCondition['wind speed'] + ' Kph'+'</h6>'
+            +
+            '<h6>Maximum Temperature(in &#8451): ' + weatherCondition['tempMax']+'</h6>'
+            +
+            '<h6>Minimum Temperature(in &#8451): ' + weatherCondition['tempMin'] + '</h6>'
+            +
+        '</div>');
+
+    }, 1000);
+   
 }
 
 // Not Required
@@ -142,7 +167,6 @@ function getWeatherCondition(dateAndTime, lat, lng) {
 //  }
 
 function positionError(position) {
-    console.log("error")
     map.setCenter(new google.maps.LatLng(28.7041, 77.1025)); // New Delhi
     map.setZoom(5);
 }
